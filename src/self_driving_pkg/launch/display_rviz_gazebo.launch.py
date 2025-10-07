@@ -34,7 +34,7 @@ def generate_launch_description():
     
     gazebo_world_arg = DeclareLaunchArgument(
         "world",
-        default_value=os.path.join(get_package_share_directory("self_driving_pkg"),"worlds","line_aruco.world"),
+        default_value=os.path.join(get_package_share_directory("self_driving_pkg"),"worlds","line_aruco2.world"),
         description="custom world with models"
     )
     rviz_config_arg = DeclareLaunchArgument(

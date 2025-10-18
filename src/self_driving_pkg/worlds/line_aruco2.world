@@ -282,10 +282,10 @@
       <pose>2.99476 0.269995 0 0 -0 0</pose>
     </model>
     <state world_name='default'>
-      <sim_time>1572 696000000</sim_time>
-      <real_time>128 329999795</real_time>
-      <wall_time>1758906694 19817553</wall_time>
-      <iterations>127518</iterations>
+      <sim_time>1651 857000000</sim_time>
+      <real_time>213 967713873</real_time>
+      <wall_time>1759861133 588112685</wall_time>
+      <iterations>206679</iterations>
       <model name='Marker0'>
         <pose>1.17422 -1.38615 0.268629 0 -0 0</pose>
         <scale>1 1 1</scale>
@@ -317,10 +317,10 @@
         </link>
       </model>
       <model name='Marker2'>
-        <pose>5.96973 4.63716 0.172732 0 -0 0</pose>
+        <pose>5.67375 4.90348 0.278245 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>5.96973 4.63716 0.172732 0 -0 0</pose>
+          <pose>5.67375 4.90348 0.278245 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -367,13 +367,13 @@
         </link>
       </model>
       <model name='coke_can'>
-        <pose>1.47009 1.7966 0.772434 -0.011207 0.004014 -0.002023</pose>
+        <pose>1.47009 1.79661 0.77243 -0.009821 0.003515 -0.001886</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>1.47009 1.7966 0.772434 -0.011207 0.004014 -0.002023</pose>
+          <pose>1.47009 1.79661 0.77243 -0.009821 0.003515 -0.001886</pose>
           <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0.063145 -0.117221 -0.009602 2.01997 1.11429 -0.448904</acceleration>
-          <wrench>0.024627 -0.045716 -0.003745 0 -0 0</wrench>
+          <acceleration>0.048549 -0.190558 -0.006872 -2.97062 0.852848 0.02831</acceleration>
+          <wrench>0.018934 -0.074318 -0.00268 0 -0 0</wrench>
         </link>
       </model>
       <model name='ground_plane'>
@@ -1405,7 +1405,7 @@
     </model>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose>-21.8454 -4.90249 34.0496 -0 0.967637 0.243387</pose>
+        <pose>0.757801 4.92517 1.56318 -0 0.393796 0.055389</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>

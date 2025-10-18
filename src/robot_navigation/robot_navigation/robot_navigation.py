@@ -5,15 +5,24 @@ from geometry_msgs.msg import TwistStamped
 import cv2
 from cv_bridge import CvBridge 
 import numpy as np 
-from constants.constants import aruco_distance_threshold
+from constants.constants import MARKER_DISTANCE_THRESHOLD, MAX_LINEAR_SPEED, MIN_LINEAR_SPEED, ANGULAR_SPEED_SCALING_FACTOR
+from constants.constants import KP,KI,KD,ROBOT_HALTING_POINT_DISTANCE,DECELERATION_RATE
 # linear speed
-LINEAR_SPEED = 0.5 
+# LINEAR_SPEED = 0.3
+# Linear speed
+# MAX_LINEAR_SPEED = MAX_LINEAR_SPEED 
+# MIN_LINEAR_SPEED = MIN_LINEAR_SPEED 
+
+# Angular scaling parameter
+# This constant determines how quickly the linear speed drops as angular speed increases.
+# A higher value means speed drops faster for a small turn.
+# ANGULAR_SPEED_SCALING_FACTOR = ANGULAR_SPEED_SCALING_FACTOR
 
 # angular speed 
 # Controller gains
-KP = 0.001 # Proportional gain
-KI = 0.0 # Integral gain
-KD = 0.0  # Derivative gain
+KP = KP # Proportional gain
+KI = KI # Integral gain
+KD = KD  # Derivative gain
 
 # KP = 0.0003  # Proportional gain
 # KI = 0.0001 # Integral gain
@@ -41,7 +50,9 @@ class ImageSubscriber(Node):
         self.marker_length = 1.0
         self.aruco_distance = None
         self.marker_id = None
-
+        self.is_stopping = False
+        self.deceleration_rate = DECELERATION_RATE
+        self.dynamic_linear_speed = 0.0
         # PID controller variables
         self.previous_error = 0.0
         self.integral_error = 0.0
@@ -96,6 +107,9 @@ class ImageSubscriber(Node):
         return blue_roi_img,mask
     
     def image_callback(self,msg):
+        if self.camera_matrix is None:
+            self.get_logger().info(f"camera info not loaded...")
+            return
         cv_image = self.bridge_.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         img = cv2.resize(cv_image,(300,200))
         cv2.imshow("cv image ",img)
@@ -105,26 +119,40 @@ class ImageSubscriber(Node):
         # getting right or left half the image based on aruco marker
         h,w = cv_image.shape[:2]
         # getting image right part to turn right
-        if self.marker_id == 1 and self.aruco_distance < aruco_distance_threshold:
+        if self.marker_id == 1 and self.aruco_distance < MARKER_DISTANCE_THRESHOLD:
             self.get_logger().info(f"distance : {self.aruco_distance}")
             cv_image[:,:w//2] = 0
         # getting image left part to turn left
-        elif self.marker_id == 0 and self.aruco_distance < aruco_distance_threshold:
+        elif self.marker_id == 0 and self.aruco_distance < MARKER_DISTANCE_THRESHOLD:
             self.get_logger().info(f"distance : {self.aruco_distance}")
             cv_image[:,w//2:] = 0
         # stop the robot
-        elif self.marker_id == 2 and self.aruco_distance < 2.0:
-            cmd_msg = TwistStamped()
-            cmd_msg.twist.linear.x = 0.0
-            cmd_msg.twist.angular.z = 0.0
-            self.pub_.publish(cmd_msg)
-            return
+        elif self.marker_id == 2 and self.aruco_distance < ROBOT_HALTING_POINT_DISTANCE:
+            self.is_stopping = True
+            self.get_logger().info("Stop Marker detected. Initiating smooth stop.")
+
+            # cmd_msg = TwistStamped()
+            # cmd_msg.twist.linear.x = 0.0
+            # cmd_msg.twist.angular.z = 0.0
+            # self.pub_.publish(cmd_msg)
+            # return
 
         # line segmentation
         blue_roi_img,mask = self.line_segmentation(cv_image=cv_image)
         # getting line contour
         cmd_msg = TwistStamped()
         line = self.get_contours(mask)
+        
+        # robot is stopping
+        if self.is_stopping:
+            self.dynamic_linear_speed -= self.deceleration_rate 
+            if self.dynamic_linear_speed <= 0.0:
+                self.dynamic_linear_speed = 0.0
+                self.is_stopping = False
+            cmd_msg.twist.linear.x = float(dynamic_linear_speed) 
+            cmd_msg.twist.angular.z = 0.0
+            self.get_logger().info(f"")
+            self.pub_.publish(cmd_msg)
         _,w = blue_roi_img.shape[:2]
         if line:
             x = line['x']
@@ -137,12 +165,26 @@ class ImageSubscriber(Node):
             
             # calculating angular speed using PID 
             angular_speed = -(KP * error + KI * self.integral_error + KD * derivative_error)
-            self.get_logger().info(f"error: {error}, angular speed: {angular_speed}")
 
             cv2.circle(blue_roi_img,(line['x'],line['y']),5,(0,0,255),7)
+
+            #  DYNAMIC SPEED CALCULATION 
+            # 1. Get the absolute value of the angular speed (magnitude of the turn)
+            abs_angular_speed = abs(angular_speed)
+
+            # 2. Calculate the reduction factor (Max speed - reduction based on angular speed)
+            # We use max_linear_speed - (abs_angular_speed * scaling_factor)
+            dynamic_linear_speed = MAX_LINEAR_SPEED - (abs_angular_speed * ANGULAR_SPEED_SCALING_FACTOR)
+
+            # 3. Constrain the speed to stay within the defined min and max
+            # This ensures the robot doesn't stop or go faster than the max linear speed
+            dynamic_linear_speed = np.clip(dynamic_linear_speed, MIN_LINEAR_SPEED, MAX_LINEAR_SPEED)
+
             # Publish velocity commands
-            cmd_msg.twist.linear.x = LINEAR_SPEED
+            cmd_msg.twist.linear.x = float(dynamic_linear_speed) 
+            # cmd_msg.twist.linear.x = LINEAR_SPEED    
             cmd_msg.twist.angular.z = float(angular_speed)
+            self.get_logger().info(f"error: {error}, linear speed: {dynamic_linear_speed},angular speed: {angular_speed}")
             self.pub_.publish(cmd_msg)
 
         # publishing velocity commands to our robot
